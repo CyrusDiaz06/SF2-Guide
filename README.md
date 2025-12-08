@@ -1,16 +1,11 @@
-# sf2_guide
+# SFII: World Warrior Guide
 
-A new Flutter project.
+A mobile character guide app for Street Fighter II: The World Warrior.
+Built with Flutter.
 
-## Getting Started
+## Features (in progress)
+- Character roster grid
+- Move lists with inputs and tips
+- Offline-ready JSON data
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Stay tuned for more!
