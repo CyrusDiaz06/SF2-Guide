@@ -43,3 +43,33 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Flutter
+build/
+.generated/
+.melos_tool
+.pub-cache/
+.dart_tool/
+
+# Android
+android/app/debug
+android/app/profile
+android/app/release
+
+# iOS
+**/Pods/
+**/.symlinks/
+**/DerivedData/
+
+# VS Code
+.vscode/
+
+# IntelliJ / Android Studio
+*.iml
+.idea/
+
+# MacOS
+.DS_Store
+
+# Other
+pubspec.lock
