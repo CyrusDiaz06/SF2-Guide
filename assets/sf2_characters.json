@@ -3,55 +3,67 @@
     "id": "ryu",
     "name": "Ryu",
     "archetype": "Shoto",
+    "stats": {
+      "health": 1000,
+      "walkSpeedForward": 0.85,
+      "walkSpeedBackward": 0.8,
+      "jumpArc": 1.0,
+      "strengths": [
+        "Strong all-rounder",
+        "Good fireball game",
+        "Solid anti-airs"
+      ],
+      "weaknesses": [
+        "Can struggle vs strong zoning",
+        "Requires good spacing awareness"
+      ]
+    },
     "moves": [
       {
         "name": "Hadouken",
         "input": "↓ ↘ → + P",
         "type": "Special",
         "tags": ["Fireball", "Zoning"],
-        "notes": "Standard fireball, controls horizontal space."
+        "notes": "Standard projectile used to control horizontal space.",
+        "damage": 60,
+        "stun": 100,
+        "frameData": {
+          "startup": 13,
+          "active": 3,
+          "recovery": 32,
+          "onHit": -1,
+          "onBlock": -7
+        }
       },
       {
         "name": "Shoryuken",
         "input": "→ ↓ ↘ + P",
         "type": "Special",
         "tags": ["Anti-air", "Reversal"],
-        "notes": "Strong anti-air and wake-up option."
-      },
-      {
-        "name": "Tatsumaki Senpukyaku",
-        "input": "↓ ↙ ← + K",
-        "type": "Special",
-        "tags": ["Mobility"],
-        "notes": "Can travel over some fireballs, corner escape tool."
+        "notes": "Invincible on startup, core anti-air.",
+        "damage": 80,
+        "stun": 120,
+        "frameData": {
+          "startup": 3,
+          "active": 12,
+          "recovery": 18,
+          "onHit": 0,
+          "onBlock": -17
+        }
       }
-    ]
-  },
-  {
-    "id": "ken",
-    "name": "Ken",
-    "archetype": "Shoto",
-    "moves": [
+    ],
+    "matchups": [
       {
-        "name": "Hadouken",
-        "input": "↓ ↘ → + P",
-        "type": "Special",
-        "tags": ["Fireball"],
-        "notes": "Fireball with more rushdown focus than Ryu."
+        "opponentId": "guile",
+        "ratio": 4.0,
+        "summary": "Ryu struggles vs Guile's zoning.",
+        "notes": "Guile's Sonic Boom + anti-air buttons can make it hard for Ryu to walk in. Focus on fireball wars when Guile doesn't have charge, and use jumps sparingly."
       },
       {
-        "name": "Shoryuken",
-        "input": "→ ↓ ↘ + P",
-        "type": "Special",
-        "tags": ["Anti-air", "Reversal"],
-        "notes": "More hits, better for combos and pressure."
-      },
-      {
-        "name": "Tatsumaki Senpukyaku",
-        "input": "↓ ↙ ← + K",
-        "type": "Special",
-        "tags": ["Mobility"],
-        "notes": "Good corner carry and combo ender."
+        "opponentId": "zangief",
+        "ratio": 6.0,
+        "summary": "Favorable for Ryu at mid-range.",
+        "notes": "Fireball + anti-air game keeps Zangief out. Danger increases once he gets close or corners Ryu."
       }
     ]
   }
