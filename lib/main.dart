@@ -1,10 +1,95 @@
-import 'package:flutter/material.dart';
 import 'dart:convert';
-import 'package:flutter/services.dart' show rootBundle;
 
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 void main() {
   runApp(const Sf2GuideApp());
+}
+
+/// ROOT APP
+
+class Sf2GuideApp extends StatelessWidget {
+  const Sf2GuideApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'SFII Guide',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF060714),
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFFF5C542), // arcade yellow
+          secondary: Color(0xFF3FA7FF), // electric blue
+        ),
+        cardColor: const Color(0xFF101426),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF101426),
+          foregroundColor: Colors.white,
+          elevation: 2,
+        ),
+        useMaterial3: true,
+      ),
+      home: FutureBuilder<List<Fighter>>(
+        future: loadFighters(),
+        builder: (context, snapshot) {
+          // Loading
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          // Error
+          if (snapshot.hasError) {
+            return Scaffold(
+              body: Center(
+                child: Text(
+                  'Failed to load data',
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
+            );
+          }
+
+          // Success
+          final fighters = snapshot.data ?? [];
+
+          return CharacterListScreen(fighters: fighters);
+        },
+      ),
+    );
+  }
+}
+
+/// MODELS + JSON LOADING
+
+class FrameData {
+  final int? startup;
+  final int? active;
+  final int? recovery;
+  final int? onHit;
+  final int? onBlock;
+
+  const FrameData({
+    this.startup,
+    this.active,
+    this.recovery,
+    this.onHit,
+    this.onBlock,
+  });
+
+  factory FrameData.fromJson(Map<String, dynamic> json) {
+    return FrameData(
+      startup: json['startup'] as int?,
+      active: json['active'] as int?,
+      recovery: json['recovery'] as int?,
+      onHit: json['onHit'] as int?,
+      onBlock: json['onBlock'] as int?,
+    );
+  }
 }
 
 class Move {
@@ -14,8 +99,8 @@ class Move {
   final List<String> tags;
   final String notes;
   final FrameData? frameData;
-  final int? damage; // optional rough damage value
-  final int? stun;   // if relevant for the game version
+  final int? damage;
+  final int? stun;
 
   const Move({
     required this.name,
@@ -46,49 +131,11 @@ class Move {
   }
 }
 
-
-class Fighter {
-  final String id;
-  final String name;
-  final String archetype;
-  final List<Move> moves;
-  final Stats? stats;
-  final List<Matchup> matchups;
-
-  const Fighter({
-    required this.id,
-    required this.name,
-    required this.archetype,
-    required this.moves,
-    this.stats,
-    this.matchups = const [],
-  });
-
-  factory Fighter.fromJson(Map<String, dynamic> json) {
-    final movesJson = json['moves'] as List<dynamic>? ?? [];
-    final matchupsJson = json['matchups'] as List<dynamic>? ?? [];
-    return Fighter(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      archetype: json['archetype'] as String,
-      moves: movesJson
-          .map((m) => Move.fromJson(m as Map<String, dynamic>))
-          .toList(),
-      stats: json['stats'] != null
-          ? Stats.fromJson(json['stats'] as Map<String, dynamic>)
-          : null,
-      matchups: matchupsJson
-          .map((mu) => Matchup.fromJson(mu as Map<String, dynamic>))
-          .toList(),
-    );
-  }
-}
-
 class Stats {
   final int? health;
   final double? walkSpeedForward;
   final double? walkSpeedBackward;
-  final double? jumpArc; // you can interpret these how you want
+  final double? jumpArc;
   final List<String> strengths;
   final List<String> weaknesses;
 
@@ -118,10 +165,10 @@ class Stats {
 }
 
 class Matchup {
-  final String opponentId;   // e.g. "guile"
-  final double ratio;        // e.g. 6.0 meaning 6–4 in this char's favor
-  final String summary;      // short line: "Ryu slightly wins"
-  final String notes;        // detailed text
+  final String opponentId; // e.g. "guile"
+  final double ratio; // e.g. 6.0 -> 6-4
+  final String summary;
+  final String notes;
 
   const Matchup({
     required this.opponentId,
@@ -140,33 +187,43 @@ class Matchup {
   }
 }
 
+class Fighter {
+  final String id;
+  final String name;
+  final String archetype;
+  final Stats? stats;
+  final List<Move> moves;
+  final List<Matchup> matchups;
 
-class FrameData {
-  final int? startup;    // frames before it hits
-  final int? active;     // active frames
-  final int? recovery;   // recovery frames
-  final int? onHit;      // frame advantage on hit
-  final int? onBlock;    // frame advantage on block;
-
-  const FrameData({
-    this.startup,
-    this.active,
-    this.recovery,
-    this.onHit,
-    this.onBlock,
+  const Fighter({
+    required this.id,
+    required this.name,
+    required this.archetype,
+    this.stats,
+    required this.moves,
+    this.matchups = const [],
   });
 
-  factory FrameData.fromJson(Map<String, dynamic> json) {
-    return FrameData(
-      startup: json['startup'] as int?,
-      active: json['active'] as int?,
-      recovery: json['recovery'] as int?,
-      onHit: json['onHit'] as int?,
-      onBlock: json['onBlock'] as int?,
+  factory Fighter.fromJson(Map<String, dynamic> json) {
+    final movesJson = json['moves'] as List<dynamic>? ?? [];
+    final matchupsJson = json['matchups'] as List<dynamic>? ?? [];
+
+    return Fighter(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      archetype: json['archetype'] as String,
+      stats: json['stats'] != null
+          ? Stats.fromJson(json['stats'] as Map<String, dynamic>)
+          : null,
+      moves: movesJson
+          .map((m) => Move.fromJson(m as Map<String, dynamic>))
+          .toList(),
+      matchups: matchupsJson
+          .map((m) => Matchup.fromJson(m as Map<String, dynamic>))
+          .toList(),
     );
   }
 }
-
 
 Future<List<Fighter>> loadFighters() async {
   final jsonString = await rootBundle.loadString('assets/sf2_characters.json');
@@ -175,6 +232,8 @@ Future<List<Fighter>> loadFighters() async {
       .map((item) => Fighter.fromJson(item as Map<String, dynamic>))
       .toList();
 }
+
+/// CHARACTER LIST SCREEN
 
 class CharacterListScreen extends StatelessWidget {
   final List<Fighter> fighters;
@@ -209,7 +268,6 @@ class CharacterListScreen extends StatelessWidget {
     );
   }
 }
-
 
 class FighterCard extends StatelessWidget {
   final Fighter fighter;
@@ -279,59 +337,7 @@ class FighterCard extends StatelessWidget {
   }
 }
 
-
-class Sf2GuideApp extends StatelessWidget {
-  const Sf2GuideApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'SFII Guide',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF060714),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFF5C542),
-          secondary: Color(0xFF3FA7FF),
-        ),
-        cardColor: const Color(0xFF101426),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF101426),
-          foregroundColor: Colors.white,
-          elevation: 2,
-        ),
-        useMaterial3: true,
-      ),
-      home: FutureBuilder<List<Fighter>>(
-        future: loadFighters(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
-
-          if (snapshot.hasError) {
-            return Scaffold(
-              body: Center(
-                child: Text(
-                  'Failed to load data',
-                  style: const TextStyle(color: Colors.red),
-                ),
-              ),
-            );
-          }
-
-          final fighters = snapshot.data ?? [];
-
-          return CharacterListScreen(fighters: fighters);
-        },
-      ),
-    );
-  }
-}
-
+/// CHARACTER DETAIL (TABS: OVERVIEW / MOVES / MATCHUPS)
 
 class CharacterDetailScreen extends StatelessWidget {
   final Fighter fighter;
@@ -365,6 +371,176 @@ class CharacterDetailScreen extends StatelessWidget {
   }
 }
 
+/// OVERVIEW TAB
+
+class _OverviewTab extends StatelessWidget {
+  final Fighter fighter;
+
+  const _OverviewTab({required this.fighter});
+
+  @override
+  Widget build(BuildContext context) {
+    final stats = fighter.stats;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${fighter.name} • ${fighter.archetype}',
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFF5F5F5),
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (stats != null) ...[
+            const Text(
+              'STATS',
+              style: TextStyle(
+                fontSize: 14,
+                letterSpacing: 1.2,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFF5C542),
+              ),
+            ),
+            const SizedBox(height: 8),
+            _statRow('Health', stats.health?.toString() ?? 'Unknown'),
+            _statRow(
+              'Walk Speed (Fwd)',
+              stats.walkSpeedForward?.toString() ?? '-',
+            ),
+            _statRow(
+              'Walk Speed (Back)',
+              stats.walkSpeedBackward?.toString() ?? '-',
+            ),
+            _statRow('Jump Arc', stats.jumpArc?.toString() ?? '-'),
+            const SizedBox(height: 16),
+            if (stats.strengths.isNotEmpty) ...[
+              const Text(
+                'STRENGTHS',
+                style: TextStyle(
+                  fontSize: 14,
+                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFF5C542),
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...stats.strengths.map(_bulletText),
+              const SizedBox(height: 16),
+            ],
+            if (stats.weaknesses.isNotEmpty) ...[
+              const Text(
+                'WEAKNESSES',
+                style: TextStyle(
+                  fontSize: 14,
+                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFF5C542),
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...stats.weaknesses.map(_bulletText),
+            ],
+          ] else
+            const Text(
+              'No stats available yet.',
+              style: TextStyle(color: Color(0xFFB0BEC5)),
+            ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _statRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFFB0BEC5),
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Color(0xFFF5F5F5),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _bulletText(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '• ',
+            style: TextStyle(
+              color: Color(0xFFF5F5F5),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: Color(0xFFF5F5F5),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// MOVES TAB
+
+class _MovesTab extends StatelessWidget {
+  final Fighter fighter;
+
+  const _MovesTab({required this.fighter});
+
+  @override
+  Widget build(BuildContext context) {
+    final specials = fighter.moves.where((m) => m.type == 'Special').toList();
+    final normals = fighter.moves.where((m) => m.type == 'Normal').toList();
+    final throws = fighter.moves.where((m) => m.type == 'Throw').toList();
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        if (specials.isNotEmpty) ...[
+          const SectionHeader(title: 'Special Moves'),
+          const SizedBox(height: 8),
+          ...specials.map(MoveCard.new),
+          const SizedBox(height: 16),
+        ],
+        if (normals.isNotEmpty) ...[
+          const SectionHeader(title: 'Normals'),
+          const SizedBox(height: 8),
+          ...normals.map(MoveCard.new),
+          const SizedBox(height: 16),
+        ],
+        if (throws.isNotEmpty) ...[
+          const SectionHeader(title: 'Throws'),
+          const SizedBox(height: 8),
+          ...throws.map(MoveCard.new),
+        ],
+      ],
+    );
+  }
+}
 
 class SectionHeader extends StatelessWidget {
   final String title;
@@ -392,6 +568,8 @@ class MoveCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fd = move.frameData;
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),
       shape: RoundedRectangleBorder(
@@ -451,6 +629,23 @@ class MoveCard extends StatelessWidget {
                     .toList(),
               ),
             ],
+            if (fd != null) ...[
+              const SizedBox(height: 8),
+              const Text(
+                'Frame Data',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFF5C542),
+                ),
+              ),
+              const SizedBox(height: 4),
+              _frameRow('Startup', fd.startup),
+              _frameRow('Active', fd.active),
+              _frameRow('Recovery', fd.recovery),
+              _frameRow('On Hit', fd.onHit),
+              _frameRow('On Block', fd.onBlock),
+            ],
             if (move.notes.isNotEmpty) ...[
               const SizedBox(height: 6),
               Text(
@@ -466,119 +661,26 @@ class MoveCard extends StatelessWidget {
       ),
     );
   }
-}
 
-class _OverviewTab extends StatelessWidget {
-  final Fighter fighter;
-
-  const _OverviewTab({required this.fighter});
-
-  @override
-  Widget build(BuildContext context) {
-    final stats = fighter.stats;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '${fighter.name} • ${fighter.archetype}',
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFFF5F5F5),
-            ),
-          ),
-          const SizedBox(height: 16),
-          if (stats != null) ...[
-            const Text(
-              'Stats',
-              style: TextStyle(
-                fontSize: 14,
-                letterSpacing: 1.2,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFFF5C542),
-              ),
-            ),
-            const SizedBox(height: 8),
-            _statRow('Health', stats.health?.toString() ?? 'Unknown'),
-            _statRow('Walk Speed (Fwd)', stats.walkSpeedForward?.toString() ?? '-'),
-            _statRow('Walk Speed (Back)', stats.walkSpeedBackward?.toString() ?? '-'),
-            _statRow('Jump Arc', stats.jumpArc?.toString() ?? '-'),
-            const SizedBox(height: 16),
-            if (stats.strengths.isNotEmpty) ...[
-              const Text(
-                'Strengths',
-                style: TextStyle(
-                  fontSize: 14,
-                  letterSpacing: 1.2,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFFF5C542),
-                ),
-              ),
-              const SizedBox(height: 8),
-              ...stats.strengths.map((s) => _bulletText(s)),
-              const SizedBox(height: 16),
-            ],
-            if (stats.weaknesses.isNotEmpty) ...[
-              const Text(
-                'Weaknesses',
-                style: TextStyle(
-                  fontSize: 14,
-                  letterSpacing: 1.2,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFFF5C542),
-                ),
-              ),
-              const SizedBox(height: 8),
-              ...stats.weaknesses.map((w) => _bulletText(w)),
-            ],
-          ] else
-            const Text(
-              'No stats available yet.',
-              style: TextStyle(color: Color(0xFFB0BEC5)),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _statRow(String label, String value) {
+  static Widget _frameRow(String label, int? value) {
+    if (value == null) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: 1),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label,
-              style: const TextStyle(
-                color: Color(0xFFB0BEC5),
-              )),
-          Text(value,
-              style: const TextStyle(
-                color: Color(0xFFF5F5F5),
-              )),
-        ],
-      ),
-    );
-  }
-
-  Widget _bulletText(String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('• ',
-              style: TextStyle(
-                color: Color(0xFFF5F5F5),
-              )),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(
-                color: Color(0xFFF5F5F5),
-              ),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              color: Color(0xFFB0BEC5),
+            ),
+          ),
+          Text(
+            value.toString(),
+            style: const TextStyle(
+              fontSize: 11,
+              color: Color(0xFFF5F5F5),
             ),
           ),
         ],
@@ -587,41 +689,7 @@ class _OverviewTab extends StatelessWidget {
   }
 }
 
-class _MovesTab extends StatelessWidget {
-  final Fighter fighter;
-
-  const _MovesTab({required this.fighter});
-
-  @override
-  Widget build(BuildContext context) {
-    final specials = fighter.moves.where((m) => m.type == 'Special').toList();
-    final normals = fighter.moves.where((m) => m.type == 'Normal').toList();
-    final throws = fighter.moves.where((m) => m.type == 'Throw').toList();
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        if (specials.isNotEmpty) ...[
-          const SectionHeader(title: 'Special Moves'),
-          const SizedBox(height: 8),
-          ...specials.map(MoveCard.new),
-          const SizedBox(height: 16),
-        ],
-        if (normals.isNotEmpty) ...[
-          const SectionHeader(title: 'Normals'),
-          const SizedBox(height: 8),
-          ...normals.map(MoveCard.new),
-          const SizedBox(height: 16),
-        ],
-        if (throws.isNotEmpty) ...[
-          const SectionHeader(title: 'Throws'),
-          const SizedBox(height: 8),
-          ...throws.map(MoveCard.new),
-        ],
-      ],
-    );
-  }
-}
+/// MATCHUPS TAB
 
 class _MatchupsTab extends StatelessWidget {
   final Fighter fighter;
@@ -662,7 +730,6 @@ class _MatchupsTab extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  // You could later resolve opponent name by ID
                   'vs ${mu.opponentId.toUpperCase()}',
                   style: const TextStyle(
                     fontSize: 14,
